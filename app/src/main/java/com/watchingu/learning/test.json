@@ -1,0 +1,11 @@
+{
+  "purchaseId": 12,
+  "purchase_name": "Test",
+  "purchasePrice": 123,
+  "purchases": ["hleb", "bulka", "ser"],
+  "author": {
+    "name": "Natuha",
+    "id": 1,
+    "color": "blue"
+  }
+}
