@@ -5,45 +5,60 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.room.Room;
 
-import com.google.gson.Gson;
+import com.watchingu.learning.db.MovieEntity;
+import com.watchingu.learning.db.MoviesDao;
+import com.watchingu.learning.db.MoviesDatabase;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import javax.crypto.Mac;
+
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = "zlo";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://api.themoviedb.org/3/")
-                .addConverterFactory(GsonConverterFactory.create(new Gson()))
+        MoviesDatabase database = Room.databaseBuilder(getApplicationContext(), MoviesDatabase.class, "movies-database")
                 .build();
-        MoviesApi moviesApi = retrofit.create(MoviesApi.class);
-        Callback moviesCallback = new Callback<MoviesResult>() {
+        MoviesDao moviesDao = database.getMoviesDao();
+        new Thread(new Runnable() {
             @Override
-            public void onResponse(Call<MoviesResult> call, Response<MoviesResult> response) {
-                MoviesResult body = response.body();
-                List<Movie> movies = body.getMovies();
-                for (int i = 0; i < movies.size(); i++) {
-                    Log.d("TAG", "onResponse: " + movies.get(i).getTitle());
+            public void run() {
+                List<MovieEntity> movieEntityList = moviesDao.getAllMovies();
+                if (movieEntityList.isEmpty()) {
+                    Log.d(TAG, "movies list is empty");
+                } else {
+                    for (int i = 0; i < movieEntityList.size(); i++) {
+                        Log.d(TAG, "movie" + movieEntityList.get(i));
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<MoviesResult> call, Throwable t) {
-                Log.d("TAG", "onFailure: " + t);
+                moviesDao.saveMovie(new MovieEntity("Ruslan", "ruslan image"));
+                moviesDao.saveMovie(new MovieEntity("Ruslan 1", "ruslan image 1"));
+                moviesDao.saveMovie(new MovieEntity("Ruslan 2", "ruslan image 2"));
+                moviesDao.saveMovie(new MovieEntity("Ruslan 3", "ruslan image 3"));
+                movieEntityList = moviesDao.getAllMovies();
+                if (movieEntityList.isEmpty()) {
+                    Log.d(TAG, "movies list is empty");
+                } else {
+                    for (int i = 0; i < movieEntityList.size(); i++) {
+                        Log.d(TAG, "movie" + movieEntityList.get(i));
+                        moviesDao.deleteMovie(movieEntityList.get(i).getId());
+                    }
+                }
+                movieEntityList = moviesDao.getAllMovies();
+                Log.d(TAG, "movies list is empty " + movieEntityList.isEmpty());
             }
-        };
-
-        moviesApi.getMovies("9fa99c02931117a67a7649be011c49da").enqueue(moviesCallback);
+        }).start();
     }
 }
